@@ -176,3 +176,15 @@ textarea { resize: vertical; }
   white-space: pre-wrap;
 }
 .badges { display: flex; gap: 6px; flex-wrap: wrap; }
+
+
+.timeline { display: flex; flex-direction: column; gap: 12px; }
+.timelineItem { display: grid; grid-template-columns: 14px 1fr; gap: 10px; }
+.timelineDot {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: #64748b; margin-top: 6px;
+}
+.timelineBody { border-left: 1px solid #22314d; padding-left: 10px; }
+.timelineTop { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.timelineSummary { color: #cbd5e1; margin-top: 6px; }
+.timelineMore { color: #94a3b8; cursor: pointer; margin-top: 6px; }

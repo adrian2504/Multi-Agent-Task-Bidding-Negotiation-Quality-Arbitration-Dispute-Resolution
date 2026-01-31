@@ -292,6 +292,39 @@ function TaskForm({ onRun }: { onRun: (req: RunRequest) => void }) {
   );
 }
 
+function TimelineCard({ report }: { report: UiReport }) {
+  const events = report.events ?? [];
+
+  return (
+    <Card title="Negotiation Timeline">
+      {events.length === 0 ? (
+        <div className="muted">No events.</div>
+      ) : (
+        <div className="timeline">
+          {events.map((e) => (
+            <div className="timelineItem" key={e.seq}>
+              <div className="timelineDot" />
+              <div className="timelineBody">
+                <div className="timelineTop">
+                  <div className="mono"><b>#{e.seq}</b> {e.type}</div>
+                  <Badge>Round {e.round}</Badge>
+                </div>
+                <div className="timelineSummary">{e.summary}</div>
+                <details>
+                  <summary className="timelineMore">details</summary>
+                  <pre className="code">{JSON.stringify(e.data, null, 2)}</pre>
+                </details>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </Card>
+  );
+}
+
+
+
 export default function App() {
   const [report, setReport] = useState<UiReport | null>(null);
   const [loading, setLoading] = useState(false);
@@ -355,6 +388,8 @@ export default function App() {
           {report ? <TaskCard report={report} /> : null}
           {report ? <WeightsCard report={report} /> : null}
           {report ? <RefereeCard report={report} /> : null}
+          {report ? <TimelineCard report={report} /> : null}
+
 
           {report ? (
             <Card title="Raw JSON (debug)">

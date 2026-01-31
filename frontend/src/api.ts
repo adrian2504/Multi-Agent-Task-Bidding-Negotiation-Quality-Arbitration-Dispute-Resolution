@@ -32,6 +32,16 @@ export type UiReport = {
     rank: number;
     isWinner: boolean;
   }>;
+    events?: Array<{
+    run_id: string;
+    seq: number;
+    type: string;
+    ts: string;
+    round: number;
+    summary: string;
+    data: Record<string, any>;
+  }>;
+
 };
 
 export type RunRequest = {

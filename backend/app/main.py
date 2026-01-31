@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 from .sim.demo import run_demo
 from .llm.ollama import OllamaLLM
@@ -51,12 +51,12 @@ async def demo_run():
 
 #  frontend-friendly response
 @app.post("/demo/run-ui")
-async def demo_run_ui():
+async def demo_run_ui(seed: int = Query(42), rounds: int = Query(2)):
     llm = get_llm()
     try:
-        report = await run_demo(llm=llm)
+        report = await run_demo(llm=llm, seed=seed, rounds=rounds)
     except Exception:
-        report = await run_demo(llm=None)
+        report = await run_demo(llm=None, seed=seed, rounds=rounds)
     return to_ui(report)
 
 
