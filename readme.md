@@ -33,7 +33,7 @@ The winner is the bid with the best combined score (configurable weights), and t
 ---
 
 ## “Offline-Simulated Chain” Ledger
-No real blockchain needed.
+
 This repo uses an **append-only event log** (“ledger”) so every action is auditable and replayable:
 - TASK_POSTED
 - BID_SUBMITTED
@@ -66,16 +66,81 @@ Run the same task with 5 freelancer agents:
 ### Local (default)
 CLI simulation + JSONL ledger + local evaluation harness
 
-### Hosted (AWS serverless, optional)
+### Hosted (AWS serverless)
 - Frontend: S3 + CloudFront
 - Backend: API Gateway (HTTP API) + AWS Lambda
 - State/Ledger: DynamoDB
 - IaC: AWS SAM or CDK
 
-```mermaid
-flowchart LR
-  UI[Web UI (S3/CloudFront)] --> API[API Gateway]
-  API --> L[Lambda: orchestrator]
-  L --> DDB[(DynamoDB: tasks/bids/ledger)]
-  L --> REF[Lambda: quality referee]
-  REF --> DDB
+
+## Features (Current v0.1)
+- Multi-attribute auction scoring (price + ETA + expected quality − risk)
+- 5 freelancer agents produce bids
+- Ranked bids + winner selection
+- UI-friendly JSON response (`/demo/run-ui`)
+- React UI: winner card + ranked bids table + score breakdown modal
+- **LLM-optional** bid notes via local Ollama (no API keys)
+
+---
+
+## Tech Stack
+- **Backend:** Python, FastAPI, Uvicorn, Pydantic, httpx
+- **Frontend:** React, Vite, TypeScript
+- **LLM (optional):** Ollama + Llama (local)
+
+---
+
+# Running the Project (Local Dev)
+
+## Prerequisites
+- **Python 3.12+**
+- **Node.js 18+**
+- **Ollama** (optional — only needed if you want LLM-generated bid notes)
+
+---
+
+## 1) First-Time Setup
+
+### A) Backend (FastAPI)
+```bash
+cd backend
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt 
+```
+
+## 2) Run the API
+### USE_LLM=1 OLLAMA_MODEL=llama3.1:8b python -m uvicorn app.main:app --reload
+
+
+## 3) Start ollama
+
+### a) brew services start ollama
+### b) ollama pull llama3.1:8b
+### c) ollama list
+
+## 4) Frontend (React + Vite)
+### a) cd frontend
+### b) npm install
+### c) npm run dev
+
+#### Frontend Url: http://localhost:5173
+
+
+## * Running after first setup
+### Terminal 1 Backend
+#### cd backend
+#### source .venv/bin/activate
+#### USE_LLM=1 OLLAMA_MODEL=llama3.1:8b python -m uvicorn app.main:app --reload
+
+### Terminal 2 Frontend
+#### cd frontend
+#### npm run dev
+
+### Terminal 3
+#### ollama serve
+
+
+
+
+
