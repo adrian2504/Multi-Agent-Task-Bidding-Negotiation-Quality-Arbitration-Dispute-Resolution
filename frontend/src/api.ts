@@ -67,6 +67,6 @@ async function postJson<T>(path: string, body?: any): Promise<T> {
 }
 
 export const api = {
-  demoRunUi: () => postJson<UiReport>("/demo/run-ui"),
+  demoRunUi: (seed = 42, rounds = 2) => postJson<UiReport>(`/demo/run-ui?seed=${seed}&rounds=${rounds}`),
   runUi: (req: RunRequest) => postJson<UiReport>("/run-ui", req),
 };

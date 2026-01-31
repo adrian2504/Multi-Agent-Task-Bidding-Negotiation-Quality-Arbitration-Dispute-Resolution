@@ -197,7 +197,10 @@ function BidsTable({ report }: { report: UiReport }) {
   );
 }
 
-function TaskForm({ onRun }: { onRun: (req: RunRequest) => void }) {
+  function TaskForm({ onRun, onRunDemo, }: { onRun: (req: RunRequest) => void; onRunDemo: (seed: number, rounds: number) => void; }) {
+  
+  const [seed, setSeed] = useState(42);
+  const [rounds, setRounds] = useState(2);
   const [title, setTitle] = useState("Build a FastAPI endpoint + unit tests");
   const [budgetUsd, setBudgetUsd] = useState(250);
   const [criteriaText, setCriteriaText] = useState(
@@ -265,12 +268,32 @@ function TaskForm({ onRun }: { onRun: (req: RunRequest) => void }) {
           </label>
         </div>
 
+
         <div className="field">
           <label>Model</label>
           <input value={model} onChange={(e) => setModel(e.target.value)} placeholder="llama3.1:8b" />
         </div>
+                <div className="field">
+          <label>Seed (replayable)</label>
+          <input type="number" value={seed} onChange={(e) => setSeed(Number(e.target.value))} />
+        </div>
 
-        <div className="actions full">
+        <div className="field">
+          <label>Negotiation Rounds</label>
+          <input
+            type="number"
+            min={0}
+            max={5}
+            value={rounds}
+            onChange={(e) => setRounds(Number(e.target.value))}
+          />
+        </div>
+
+              <div className="actions full" style={{ gap: 10 }}>
+          <button className="btn" onClick={() => onRunDemo(seed, rounds)}>
+            Run Demo (seeded)
+          </button>
+
           <button
             className="btn primary"
             onClick={() =>
@@ -284,9 +307,11 @@ function TaskForm({ onRun }: { onRun: (req: RunRequest) => void }) {
               })
             }
           >
-            Run Auction
+            Run Custom Task
           </button>
         </div>
+
+        
       </div>
     </Card>
   );
@@ -294,6 +319,7 @@ function TaskForm({ onRun }: { onRun: (req: RunRequest) => void }) {
 
 function TimelineCard({ report }: { report: UiReport }) {
   const events = report.events ?? [];
+  let lastLeader: string | null = null;
 
   return (
     <Card title="Negotiation Timeline">
@@ -301,22 +327,51 @@ function TimelineCard({ report }: { report: UiReport }) {
         <div className="muted">No events.</div>
       ) : (
         <div className="timeline">
-          {events.map((e) => (
-            <div className="timelineItem" key={e.seq}>
-              <div className="timelineDot" />
-              <div className="timelineBody">
-                <div className="timelineTop">
-                  <div className="mono"><b>#{e.seq}</b> {e.type}</div>
-                  <Badge>Round {e.round}</Badge>
+          {events.map((e) => {
+            const leader = e.data?.leader ?? null;
+            const leaderChanged = leader && lastLeader && leader !== lastLeader;
+            if (leader) lastLeader = leader;
+
+            const top3 = e.data?.top3 as [string, number][] | undefined;
+
+            return (
+              <div className="timelineItem" key={e.seq}>
+                <div className="timelineDot" />
+                <div className="timelineBody">
+                  <div className="timelineTop">
+                    <div className="mono">
+                      <b>#{e.seq}</b> {e.type}
+                    </div>
+                    <div className="badges">
+                      <Badge>Round {e.round}</Badge>
+                      {leader ? <Badge tone="success">Leader: {leader}</Badge> : null}
+                      {leaderChanged ? <Badge tone="danger">Leader changed</Badge> : null}
+                    </div>
+                  </div>
+
+                  <div className="timelineSummary">{e.summary}</div>
+
+                  {top3?.length ? (
+                    <div className="top3">
+                      <div className="muted" style={{ fontWeight: 800, marginTop: 8 }}>Top 3 snapshot</div>
+                      <ol className="list">
+                        {top3.map(([id, score]) => (
+                          <li key={id} className="mono">
+                            {id} — {fmt(score)}
+                          </li>
+                        ))}
+                      </ol>
+                    </div>
+                  ) : null}
+
+                  <details>
+                    <summary className="timelineMore">payload</summary>
+                    <pre className="code">{JSON.stringify(e.data, null, 2)}</pre>
+                  </details>
                 </div>
-                <div className="timelineSummary">{e.summary}</div>
-                <details>
-                  <summary className="timelineMore">details</summary>
-                  <pre className="code">{JSON.stringify(e.data, null, 2)}</pre>
-                </details>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </Card>
@@ -325,16 +380,17 @@ function TimelineCard({ report }: { report: UiReport }) {
 
 
 
+
 export default function App() {
   const [report, setReport] = useState<UiReport | null>(null);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
-  async function loadDemo() {
+    async function loadDemo(seed = 42, rounds = 2) {
     setLoading(true);
     setErr(null);
     try {
-      const r = await api.demoRunUi();
+      const r = await api.demoRunUi(seed, rounds);
       setReport(r);
     } catch (e: any) {
       setErr(e.message ?? String(e));
@@ -342,6 +398,7 @@ export default function App() {
       setLoading(false);
     }
   }
+
 
   async function runTask(req: RunRequest) {
     setLoading(true);
@@ -356,9 +413,10 @@ export default function App() {
     }
   }
 
-  useEffect(() => {
-    loadDemo();
+    useEffect(() => {
+    loadDemo(42, 2);
   }, []);
+
 
   return (
     <div className="page">
@@ -368,9 +426,9 @@ export default function App() {
           <div className="subtitle">Multi-agent bidding + scoring + explainable winner selection</div>
         </div>
         <div className="headerActions">
-          <button className="btn" onClick={loadDemo} disabled={loading}>
-            Load Demo
-          </button>
+          <button className="btn" onClick={() => loadDemo(42, 2)} disabled={loading}>
+  Load Demo
+</button>
         </div>
       </div>
 
@@ -379,7 +437,8 @@ export default function App() {
 
       <div className="grid">
         <div className="col">
-          <TaskForm onRun={runTask} />
+          <TaskForm onRun={runTask} onRunDemo={(seed, rounds) => loadDemo(seed, rounds)} />
+
           {report ? <BidsTable report={report} /> : null}
         </div>
 

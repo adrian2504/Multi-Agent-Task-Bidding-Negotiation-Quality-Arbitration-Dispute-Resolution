@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 from typing import Optional, Dict
 import random
 
@@ -7,9 +8,11 @@ from ..core.report import pick_winner
 from ..agents.freelancer import FreelancerProfile, propose_bid
 from ..llm.base import LLM
 from ..core.ledger import Ledger
+from ..core.scoring import score_bid
 from .negotiation import propose_counteroffers, apply_counteroffer
 
 DEFAULT_WEIGHTS = {"price": 0.9, "eta": 0.35, "quality": 1.2, "risk": 1.1}
+
 
 async def run_demo(
     llm: Optional[LLM] = None,
@@ -33,7 +36,12 @@ async def run_demo(
         budget_usd=250,
     )
 
-    ledger.add("TASK_POSTED", f"Task posted: {task.title}", round=0, data={"budget_usd": task.budget_usd})
+    ledger.add(
+        "TASK_POSTED",
+        f"Task posted: {task.title}",
+        round=0,
+        data={"budget_usd": task.budget_usd, "criteria": task.acceptance_criteria},
+    )
 
     freelancers = [
         FreelancerProfile("cheap_risky", 0.35, base_speed=2, base_price=80,  risk_flags=["low_test_coverage", "copy_paste_history"]),
@@ -47,7 +55,12 @@ async def run_demo(
     for f in freelancers:
         b = await propose_bid(task, f, llm=llm)
         bids.append(b)
-        ledger.add("BID_SUBMITTED", f"Bid submitted by {b.freelancer_id}", round=0, data=b.model_dump())
+        ledger.add(
+            "BID_SUBMITTED",
+            f"Bid submitted by {b.freelancer_id}",
+            round=0,
+            data=b.model_dump(),
+        )
 
     # Negotiation rounds
     for r in range(1, rounds + 1):
@@ -55,7 +68,7 @@ async def run_demo(
 
         ledger.add(
             "COUNTEROFFER_SENT",
-            f"Mediator sent round {r} counteroffers (leader: {leader})",
+            f"Mediator sent counteroffers (leader: {leader})",
             round=r,
             data={"leader": leader, "offers": [o.__dict__ for o in offers]},
         )
@@ -69,18 +82,36 @@ async def run_demo(
 
             ledger.add(
                 "COUNTEROFFER_RESPONSE",
-                f"{b.freelancer_id} responded to counteroffer",
+                f"{b.freelancer_id} responded",
                 round=r,
                 data={"before": b.model_dump(), "after": updated.model_dump()},
             )
 
         bids = new_bids
-        ledger.add("ROUND_COMPLETE", f"Round {r} complete", round=r)
+
+        # ✅ Top-3 snapshot AFTER round updates (this is what your UI uses)
+        max_eta = max(b.eta_days for b in bids) if bids else 1
+        ranked = []
+        for bid in bids:
+            sb = score_bid(bid, task.budget_usd, max_eta, w)
+            ranked.append((bid.freelancer_id, float(sb.total)))
+        ranked.sort(key=lambda x: x[1], reverse=True)
+
+        ledger.add(
+            "ROUND_COMPLETE",
+            f"Round {r} complete (leader: {leader})",
+            round=r,
+            data={"leader": leader, "top3": ranked[:3]},
+        )
 
     report = pick_winner(task, bids, w)
+
+    ledger.add(
+        "WINNER_SELECTED",
+        f"Winner selected: {report.winner_id}",
+        round=rounds,
+        data={"winner_id": report.winner_id},
+    )
+
     report.events = ledger.events
-
-    ledger.add("WINNER_SELECTED", f"Winner selected: {report.winner_id}", round=rounds, data={"winner_id": report.winner_id})
-    report.events = ledger.events  # include final event
-
     return report

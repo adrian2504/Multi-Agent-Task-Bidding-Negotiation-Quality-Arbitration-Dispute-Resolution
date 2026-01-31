@@ -188,3 +188,4 @@ textarea { resize: vertical; }
 .timelineTop { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
 .timelineSummary { color: #cbd5e1; margin-top: 6px; }
 .timelineMore { color: #94a3b8; cursor: pointer; margin-top: 6px; }
+.top3 { margin-top: 6px; }
