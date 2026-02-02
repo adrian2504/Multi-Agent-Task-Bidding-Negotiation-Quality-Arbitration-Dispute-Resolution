@@ -35,6 +35,9 @@ class DecisionReport(BaseModel):
     rationale: List[str]
     referee_summary: Dict[str, Any]
     events: List["Event"] = Field(default_factory=list)
+    score_history: List[Dict[str, Any]] = Field(default_factory=list)
+
+
 
 
 EventType = Literal[

@@ -317,6 +317,73 @@ function BidsTable({ report }: { report: UiReport }) {
   );
 }
 
+function ScoreTrendCard({ report }: { report: UiReport }) {
+  const rows = report.scoreHistory ?? [];
+  if (rows.length === 0) {
+    return (
+      <Card title="Score Trend">
+        <div className="muted">No score history available.</div>
+      </Card>
+    );
+  }
+
+  // group by round
+  const byRound = new Map<number, typeof rows>();
+  for (const r of rows) {
+    if (!byRound.has(r.round)) byRound.set(r.round, []);
+    byRound.get(r.round)!.push(r);
+  }
+
+  const rounds = Array.from(byRound.keys()).sort((a, b) => a - b);
+
+  return (
+    <Card title="Score Trend (per round)">
+      {rounds.map((round) => {
+        const rrows = [...(byRound.get(round) ?? [])].sort((a, b) => b.total - a.total);
+        return (
+          <div key={round} style={{ marginBottom: 14 }}>
+            <div className="row" style={{ marginBottom: 8 }}>
+              <div className="mono"><b>Round {round}</b></div>
+              <Badge>Top: {rrows[0]?.freelancerId}</Badge>
+            </div>
+
+            <div className="tableWrap">
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>Rank</th>
+                    <th>Freelancer</th>
+                    <th>Total</th>
+                    <th>price</th>
+                    <th>eta</th>
+                    <th>quality</th>
+                    <th>risk</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rrows.map((x, i) => (
+                    <tr key={x.freelancerId} className={x.freelancerId === report.winner.freelancerId ? "winnerRow" : ""}>
+                      <td>{i + 1}</td>
+                      <td className="mono">{x.freelancerId}</td>
+                      <td><b>{fmt(x.total)}</b></td>
+                      <td>{fmt(x.price)}</td>
+                      <td>{fmt(x.eta)}</td>
+                      <td>{fmt(x.quality)}</td>
+                      <td>{fmt(x.risk)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        );
+      })}
+    </Card>
+  );
+}
+
+
+
 function TimelineCard({ report }: { report: UiReport }) {
   const events = report.events ?? [];
   let lastLeader: string | null = null;
@@ -446,10 +513,14 @@ export default function App() {
           {report ? <WinnerCard report={report} /> : null}
           {report ? <TaskCard report={report} /> : null}
           {report ? <WeightsCard report={report} /> : null}
+
+        </div>
+        <div className="col">
           {report ? <RefereeCard report={report} /> : null}
           {report ? <TimelineCard report={report} /> : null}
-
-
+          {report ? <ScoreTrendCard report={report} /> : null}
+        </div>
+        <div className="col">
           {report ? (
             <Card title="Raw JSON (debug)">
               <pre className="code">{JSON.stringify(report, null, 2)}</pre>

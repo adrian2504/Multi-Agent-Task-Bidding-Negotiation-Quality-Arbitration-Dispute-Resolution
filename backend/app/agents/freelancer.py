@@ -13,7 +13,7 @@ class FreelancerProfile:
     risk_flags: list[str]
 
 async def propose_bid(task: Task, p: FreelancerProfile, llm: Optional[LLM] = None) -> Bid:
-    # Deterministic bid math (v0.2 will add negotiation rounds)
+    # Deterministic bid math
     price = min(task.budget_usd, p.base_price + (len(task.acceptance_criteria) * 15))
     eta = max(1, p.base_speed + (len(task.acceptance_criteria) // 2))
     confidence = max(0.35, min(0.95, 0.6 + 0.4 * p.portfolio_score - 0.08 * len(p.risk_flags)))

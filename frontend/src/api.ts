@@ -41,6 +41,16 @@ export type UiReport = {
     summary: string;
     data: Record<string, any>;
   }>;
+    scoreHistory?: Array<{
+    round: number;
+    freelancerId: string;
+    total: number;
+    price: number;
+    eta: number;
+    quality: number;
+    risk: number;
+  }>;
+
 
 };
 

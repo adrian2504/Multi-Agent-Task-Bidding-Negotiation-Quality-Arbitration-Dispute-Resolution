@@ -62,6 +62,27 @@ async def run_demo(
             data=b.model_dump(),
         )
 
+    def snapshot(round_num: int, bids_now):
+        max_eta = max(b.eta_days for b in bids_now) if bids_now else 1
+        rows = []
+        for bid in bids_now:
+            sb = score_bid(bid, task.budget_usd, max_eta, w)
+            rows.append({
+                "round": round_num,
+                "freelancerId": bid.freelancer_id,
+                "total": float(sb.total),
+                "price": float(sb.price_term),
+                "eta": float(sb.eta_term),
+                "quality": float(sb.quality_term),
+                "risk": float(sb.risk_term),
+            })
+        rows.sort(key=lambda x: x["total"], reverse=True)
+        return rows
+    
+    history = []
+    history.extend(snapshot(0, bids))
+
+
     # Negotiation rounds
     for r in range(1, rounds + 1):
         leader, offers = propose_counteroffers(task, bids, w, rng)
@@ -88,8 +109,10 @@ async def run_demo(
             )
 
         bids = new_bids
+        history.extend(snapshot(r, bids))
 
-        # ✅ Top-3 snapshot AFTER round updates (this is what your UI uses)
+
+        # Top-3 snapshot
         max_eta = max(b.eta_days for b in bids) if bids else 1
         ranked = []
         for bid in bids:
@@ -114,4 +137,6 @@ async def run_demo(
     )
 
     report.events = ledger.events
+    report.score_history = history
+
     return report

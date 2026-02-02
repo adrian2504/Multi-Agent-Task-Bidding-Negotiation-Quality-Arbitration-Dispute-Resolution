@@ -51,4 +51,6 @@ def to_ui(report: DecisionReport) -> Dict[str, Any]:
         "referee": report.referee_summary,
         "bids": rows,
         "events": [e.model_dump() for e in (report.events or [])],
+        "scoreHistory": report.score_history,
+
     }
